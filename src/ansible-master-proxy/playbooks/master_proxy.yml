@@ -1,0 +1,56 @@
+---
+- name: Configure master server for proxy http/https request to local servers
+  hosts: master_proxy
+  vars:
+    base_stream_conf: "/etc/nginx/stream.d"
+    base_nginx_conf: "/etc/nginx/conf.d"
+
+
+  tasks:
+    - name: Check directories
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: dirs
+      loop:
+        - "{{ base_stream_conf }}"
+        - "{{ base_nginx_conf }}"
+
+    - name: Print status
+      debug:
+        msg: "{{ item.stat }} exists={{ item.stat.exists }}"
+      loop: "{{ dirs.results }}"
+
+    - name: Copy base stream nginx config for master proxy
+      copy:
+        src: master_proxy/nginx/stream.d/
+        dest: "{{ base_stream_conf }}/"
+        owner: root
+        group: root
+        mode: "0644"
+        directory_mode: "0755"
+
+    - name: Copy base nginx config for master proxy
+      copy:
+        src: master_proxy/nginx/conf.d/
+        dest: "{{ base_nginx_conf }}/"
+        owner: root
+        group: root
+        mode: "0644"
+        directory_mode: "0755"
+
+    - name: Test Nginx Configuration
+      command: nginx -t
+      register: nginx_test
+      changed_when: false
+
+    - name: Display nginx test result
+      debug:
+        var: nginx_test.stdout_lines
+
+    - name: Restart system nginx
+      systemd:
+        name: nginx
+        state: restarted
+
+
+

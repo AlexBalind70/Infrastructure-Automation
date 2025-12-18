@@ -1,0 +1,10 @@
+services:
+
+  ansible:
+    build:
+      context: .
+    hostname: ansible
+
+    environment:
+      - ANSIBLE_HOST_KEY_CHECKING=False
+
