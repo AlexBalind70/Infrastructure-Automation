@@ -1,0 +1,125 @@
+---
+- name: Install Docker CE and Docker Compose with custom configuration
+  hosts: docker_install
+  become: yes
+  vars:
+    docker_version: "5:28.0.4-1~ubuntu.24.04~noble"
+    docker_compose_version: "2.27.0"
+    src_docker_configuration: "{{ playbook_dir }}/../configuration/daemon.json"
+
+  tasks:
+    - name: Remove conflicting packages
+      apt:
+        name:
+          - docker.io
+          - docker-doc
+          - docker-compose
+          - docker-compose-v2
+          - podman-docker
+          - containerd
+          - runc
+        state: absent
+
+    - name: Update APT cache
+      apt:
+        update_cache: yes
+
+    - name: Install required dependencies
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+
+    - name: Create directory for Docker GPG keys
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Docker GPG key
+      get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+
+    - name: Add Docker official repository
+      shell: |
+        echo "deb [signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+        > /etc/apt/sources.list.d/docker.list
+      args:
+        creates: /etc/apt/sources.list.d/docker.list
+
+    - name: Update package lists after adding Docker repository
+      apt:
+        update_cache: yes
+
+    - name: Install Docker packages
+      apt:
+        name:
+          - "docker-ce={{ docker_version }}"
+          - "docker-ce-cli={{ docker_version }}"
+          - containerd.io
+        state: present
+        allow_downgrade: yes
+
+    - name: Enable and start Docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Verify installed Docker version
+      command: docker --version
+      register: docker_version_check
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Display installed Docker version
+      debug:
+        msg: "Installed Docker version: {{ docker_version_check.stdout }}"
+
+    - name: Get system architecture
+      command: uname -m
+      register: system_architecture
+      changed_when: false
+
+    - name: Get system OS name
+      command: uname -s
+      register: system_os
+      changed_when: false
+
+    - name: Display detected OS and architecture
+      debug:
+        msg: "Detected OS: {{ system_os.stdout }}, Architecture: {{ system_architecture.stdout }}"
+
+    - name: Download Docker Compose (specific version)
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/v{{ docker_compose_version }}/docker-compose-{{ system_os.stdout }}-{{ system_architecture.stdout }}"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+
+    - name: Verify installed Docker Compose version
+      command: docker-compose --version
+      register: docker_compose_version_check
+      changed_when: false
+
+    - name: Display installed Docker Compose version
+      debug:
+        msg: "Installed Docker Compose version: {{ docker_compose_version_check.stdout }}"
+
+    - name: Copy `daemon.json` configuration file
+      copy:
+        src: "{{ src_docker_configuration }}"
+        dest: /etc/docker/daemon.json
+        mode: '0644'
+      notify: Restart Docker
+
+  handlers:
+    - name: Restart Docker
+      systemd:
+        name: docker
+        state: restarted

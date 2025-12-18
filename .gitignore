@@ -1,0 +1,7 @@
+.idea/
+.env
+src/keys/ssh-private-key
+src/keys/ssh-public-key
+secret.yml
+**/*secret.yml
+hosts
