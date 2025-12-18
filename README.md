@@ -1,6 +1,6 @@
 <p align="right">
-  <a href="README.md[README.ru.md](docs/ru/README.ru.md)">RU</a> |
-  <a href="README.en.md[README.md](README.md)">EN</a>
+  <a href="docs/ru/README.ru.md">RU</a> |
+  <a href="README.md">EN</a>
 </p>
 
 # Infrastructure-Automation
