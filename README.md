@@ -8,8 +8,10 @@ The repository contains Ansible playbooks and auxiliary tools for automating ser
 
 
 **Main tasks:**
-  - Set up Master Proxy
-  - Install Docker and Docker Compose
+  - [Set up Master Proxy](#master-proxy)
+  - [Install Docker and Docker Compose](#docker-install)
+  - [Users management](#users-management)
+  - [SSH Security Hardening](#ssh-security-hardening)
 
 
 ## Repository structure
@@ -18,8 +20,9 @@ The repository contains Ansible playbooks and auxiliary tools for automating ser
 src/
 ├── ansible-docker-install/         # Docker installation and configuration
 ├── ansible-master-proxy            # Master proxy
-├── keys                            # SSH keys for ansible
-└── hosts.example
+├── ansible-ssh-configuration       # SSH Security Hardening
+├── ansible-users-management        # Users management
+└── keys                            # SSH keys for ansible
 .env.example                   
 add_ansible_keys.sh
 ansible.cfg                         # Ansible configuration file
@@ -134,6 +137,7 @@ Detailed documentation and run instructions:
 make docker-setup
 ```
 
+---
 
 ## Master Proxy
 
@@ -155,3 +159,67 @@ Detailed documentation and run instructions:
 ```bash
 make master-proxy-setup
 ```
+
+
+---
+
+## Users Management
+
+User management is handled via Ansible.
+
+- Create system users
+- Remove users from servers
+- Manage sudo privileges
+- SSH access via authorized keys
+- Controlled via variables only (no code edits)
+
+User actions are defined in a secrets file:
+- `username` — user name
+- `present_servers` — host groups where the user must exist
+- `absent_servers` — host groups where the user must be removed
+
+> ⚠️ Important  
+> All playbooks are executed via Docker-based Ansible (`make` only).
+
+Detailed documentation and usage:
+📄 [README.md](docs/en/README.ansible-users-management.md)
+
+### Run
+```bash
+make users-management
+```
+
+## SSH Security Hardening
+
+Basic SSH security.
+
+- SSH access restricted by IP whitelist
+- Login notifications via Telegram
+- Fail2Ban enabled (bruteforce protection)
+- Optional Fail2Ban ban notifications
+- SSH logging enabled
+
+Security recommendations:
+- Disable password login on critical servers
+- Use SSH keys only
+- Change default SSH port
+
+> ⚠️ Important  
+> SSH notifications about bans are disabled by default due to high bruteforce frequency.
+> You'll just get tired of seeing these notifications after 3 minutes)
+
+Detailed documentation and configuration:
+📄 [README.md](docs/en/README.ansible-ssh-configuration.md)
+
+### Run
+```bash
+make ssh-conf-setup
+```
+> ⚠️ IMPORTANT  
+> Before running, make sure the Telegram bot token, chat ID, and topic ID are set in the files  
+> ([ssh-notify.sh.example](../../src/ansible-ssh-configuration/ssh/ssh-notify.sh.example),  
+> [ssh.conf.example](../../src/ansible-ssh-configuration/ssh/fail2ban/jail.d/ssh.conf.example))
+
+
+
+

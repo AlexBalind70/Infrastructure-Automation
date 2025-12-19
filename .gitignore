@@ -5,3 +5,6 @@ src/keys/ssh-public-key
 secret.yml
 **/*secret.yml
 hosts
+**/*.conf
+**/*sshd_config
+**/*ssh-notify.sh

@@ -1,0 +1,46 @@
+#!/bin/bash
+
+USER="$PAM_USER"
+IP=$(echo $SSH_CONNECTION | awk '{print $1}')
+HOSTNAME=$(hostname)
+SERVER_IP=$(hostname -I | awk '{print $1}')
+DATE=$(date "+%Y-%m-%d %H:%M:%S")
+
+BOT_TOKEN="TELEGRAM_BOT_TOKEN"
+CHAT_ID="TELEGRAM_CHAT_ID"
+TOPIC_ID="TELEGRAM_TOPIC_ID"
+
+LOG_FILE="/var/log/ssh-notify.log"
+
+TRUSTED_IPS="88.88.88.88"
+
+SKIP=false
+for TRUSTED in $TRUSTED_IPS; do
+    if [ "$IP" = "$TRUSTED" ]; then
+        SKIP=true
+        break
+    fi
+done
+
+
+if [ "$SKIP" = false ]; then
+    if [ "$PAM_TYPE" = "open_session" ]; then
+      ACTION="🔐 SSH Login detected"
+    elif [ "$PAM_TYPE" = "close_session" ]; then
+        ACTION="🔒 SSH Logout"
+    else
+        exit 0
+    fi
+
+    MESSAGE="$ACTION%0A👤 User: $USER%0A🌐 From IP: $IP%0A🖥️ Hostname: $HOSTNAME%0A📍 Server IP: $SERVER_IP%0A🕒 Time: $DATE"
+
+    RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+      "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+      -d chat_id="$CHAT_ID" \
+      -d text="$MESSAGE" \
+      -d message_thread_id="$TOPIC_ID")
+else
+    RESPONSE="SKIPPED"
+fi
+
+echo "[$DATE] $ACTION $RESPONSE: $USER from $IP on $HOSTNAME ($SERVER_IP)" >> "$LOG_FILE"

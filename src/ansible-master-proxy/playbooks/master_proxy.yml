@@ -1,10 +1,16 @@
 ---
 - name: Configure master server for proxy http/https request to local servers
   hosts: master_proxy
-  vars:
-    base_stream_conf: "/etc/nginx/stream.d"
-    base_nginx_conf: "/etc/nginx/conf.d"
+  become: true
 
+  vars:
+    src_main_base_nginx_conf: "{{ playbook_dir }}/../nginx/nginx.conf"
+    src_base_stream_conf: "{{ playbook_dir }}/../nginx/stream.d/"
+    src_base_virtual_nginx_conf: "{{ playbook_dir }}/../nginx/conf.d/"
+
+    dest_main_base_nginx_conf: "/etc/nginx/nginx.conf"
+    dest_base_stream_conf: "/etc/nginx/stream.d"
+    dest_base_virtual_nginx_conf: "/etc/nginx/conf.d"
 
   tasks:
     - name: Check directories
@@ -12,8 +18,8 @@
         path: "{{ item }}"
       register: dirs
       loop:
-        - "{{ base_stream_conf }}"
-        - "{{ base_nginx_conf }}"
+        - "{{ dest_main_base_nginx_conf }}"
+        - "{{ dest_base_stream_conf }}"
 
     - name: Print status
       debug:
@@ -22,8 +28,8 @@
 
     - name: Copy base stream nginx config for master proxy
       copy:
-        src: master_proxy/nginx/stream.d/
-        dest: "{{ base_stream_conf }}/"
+        src: "{{ src_base_stream_conf }}"
+        dest: "{{ dest_base_stream_conf }}/"
         owner: root
         group: root
         mode: "0644"
@@ -31,12 +37,18 @@
 
     - name: Copy base nginx config for master proxy
       copy:
-        src: master_proxy/nginx/conf.d/
-        dest: "{{ base_nginx_conf }}/"
+        src: "{{ src_base_virtual_nginx_conf }}"
+        dest: "{{ dest_base_virtual_nginx_conf }}/"
         owner: root
         group: root
         mode: "0644"
         directory_mode: "0755"
+
+    - name: Copy base nginx config for Server
+      copy:
+        src: "{{ src_main_base_nginx_conf }}"
+        dest: "{{ dest_main_base_nginx_conf }}"
+        mode: '0644'
 
     - name: Test Nginx Configuration
       command: nginx -t

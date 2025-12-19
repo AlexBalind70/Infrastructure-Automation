@@ -1,0 +1,14 @@
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = 3
+findtime = 600
+bantime = -1
+ignoreip = 88.88.88.88
+
+# For notify about block IP
+#action =
+#    nftables[name=sshd, port=ssh, protocol=tcp]
+#    telegram-ban[token=TELEGRAM_TOKEN_BOT,chat_id=TELEGRAM_CHAT_ID,message_thread_id=TELEGRAM_CHAT_TOPIC_ID]

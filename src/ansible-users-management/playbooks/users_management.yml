@@ -1,0 +1,71 @@
+---
+- hosts: need_users_management
+  become: true
+  vars_files:
+    - "{{ playbook_dir }}/../vars/secret.yml"
+
+  tasks:
+    - name: Add user
+      user:
+        name: "{{ item.username }}"
+        groups: sudo
+        shell: /bin/bash
+      loop: "{{ users }}"
+      loop_control:
+        label: "username: {{ item.username }}"
+      when: >
+        (item.present_servers is defined and 
+        (inventory_hostname in item.present_servers or
+         group_names | intersect(item.present_servers) | length > 0))
+
+    - name: Set keys to user
+      authorized_key:
+        user: "{{ item.username }}"
+        state: present
+        key: "{{ item.ssh_key }}"
+        exclusive: True
+      loop: "{{ users }}"
+      loop_control:
+        label: "username: {{ item.username }}"
+      when: >
+        (item.present_servers is defined and 
+        (inventory_hostname in item.present_servers or
+         group_names | intersect(item.present_servers) | length > 0))
+
+    - name: Enable `sudo su` without password to user
+      copy:
+        dest: "/etc/sudoers.d/{{ item.username }}-init-user"
+        content: "{{ item.username }} ALL=(ALL) NOPASSWD:ALL"
+      loop: "{{ users }}"
+      loop_control:
+        label: "username: {{ item.username }}"
+      when: >
+        (item.present_servers is defined and 
+        (inventory_hostname in item.present_servers or
+         group_names | intersect(item.present_servers) | length > 0))
+
+    - name: Disable `sudo su` without password to user
+      file:
+        path: "/etc/sudoers.d/{{ item.username }}-init-user"
+        state: absent
+      loop: "{{ users }}"
+      loop_control:
+        label: "username: {{ item.username }}"
+      when: >
+        (item.absent_servers is defined and 
+        (inventory_hostname in item.absent_servers or
+         group_names | intersect(item.absent_servers) | length > 0))
+
+    - name: Remove user
+      user:
+        name: "{{ item.username }}"
+        state: absent
+        force: yes
+        remove: yes
+      loop: "{{ users }}"
+      loop_control:
+        label: "username: {{ item.username }}"
+      when: >
+        (item.absent_servers is defined and 
+        (inventory_hostname in item.absent_servers or
+         group_names | intersect(item.absent_servers) | length > 0))

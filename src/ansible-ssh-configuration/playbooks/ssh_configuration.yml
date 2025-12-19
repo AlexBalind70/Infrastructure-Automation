@@ -1,0 +1,90 @@
+---
+- name: Configuration SSH
+  hosts: ssh_configuration
+  become: yes
+
+  vars:
+    src_ssh_notify_script: "{{ playbook_dir }}/../ssh/ssh-notify.sh"
+    src_sshd_config: "{{ playbook_dir }}/../ssh/sshd_config"
+    src_fail2ban_telegram_action: "{{ playbook_dir }}/../ssh/fail2ban/telegram-ban.conf"
+    src_fail2ban_ssh_jail: "{{ playbook_dir }}/../ssh/fail2ban/jail.d/ssh.conf"
+
+    dest_ssh_notify_script: "/usr/local/bin/ssh-notify.sh"
+    dest_sshd_config: "/etc/ssh/sshd_config"
+    dest_fail2ban_telegram_action: "/etc/fail2ban/action.d/telegram-ban.conf"
+    dest_fail2ban_ssh_jail: "/etc/fail2ban/jail.d/ssh.conf"
+
+    path_log_file_fail2ban: "/var/log/fail2ban-telegram.log"
+
+  tasks:
+    - name: Copy script for Notifications SSH Login/Logout
+      copy:
+        src: "{{ src_ssh_notify_script }}"
+        dest: "{{ dest_ssh_notify_script }}"
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Connection ssh-notify.sh to PAM (sshd)
+      lineinfile:
+        path: /etc/pam.d/sshd
+        line: 'session optional pam_exec.so {{ dest_ssh_notify_script }}'
+        state: present
+        insertafter: EOF
+
+    - name: Set base SSH configuration file
+      copy:
+        src: "{{ src_sshd_config }}"
+        dest: "{{ dest_sshd_config }}"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart ssh
+
+    - name: Install Fail2Ban
+      apt:
+        name: fail2ban
+        state: present
+
+    - name: Deploy Fail2Ban telegram action
+      copy:
+        src: "{{ src_fail2ban_telegram_action }}"
+        dest: "{{ dest_fail2ban_telegram_action }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Deploy Fail2Ban ssh jail config
+      copy:
+        src: "{{ src_fail2ban_ssh_jail }}"
+        dest: "{{ dest_fail2ban_ssh_jail }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Ensure log file for Telegram bans exists
+      file:
+        path: "{{ path_log_file_fail2ban }}"
+        state: touch
+        owner: root
+        group: adm
+        mode: '0640'
+
+    - name: Enable fail2ban at boot
+      systemd:
+        name: fail2ban
+        enabled: yes
+
+    - name: Restart fail2ban
+      systemd:
+        name: fail2ban
+        state: restarted
+        enabled: yes
+
+
+  handlers:
+    - name: Restart ssh
+      systemd:
+        name: ssh
+        state: restarted
+        enabled: yes

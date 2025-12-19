@@ -1,0 +1,123 @@
+user www-data;
+
+### Main Context ###
+worker_processes auto;
+worker_priority -5;  # Increased priority
+worker_cpu_affinity auto; # Optimization for multi-core systems
+worker_rlimit_nofile 8192;
+
+
+
+pid /run/nginx.pid;
+
+##  Logging Settings ##
+error_log /var/log/nginx/error.log warn;
+include /etc/nginx/modules-enabled/*.conf;
+
+## Stream Settings ##
+### This model need fort MasterProxy
+stream {
+    include /etc/nginx/stream.d/base-stream.conf;
+}
+
+
+###  Events Block ###
+events {
+        worker_connections 4096;
+        use epoll;
+        multi_accept on;
+}
+
+http {
+        ### Basic Settings ###
+        sendfile on;  # Required for static files
+        tcp_nopush on; # For static files
+        tcp_nodelay on; # For keep-alive connections
+
+
+        ### Buffer and timeout settings ###
+        client_max_body_size 100m;
+        client_body_buffer_size 128k; # Buffer size for the request body
+        large_client_header_buffers 4 16k; # Large buffers for headers
+
+
+        ### Hash Table Settings ###
+        server_names_hash_bucket_size 128; # Bucket size of the hash table of server names
+        server_names_hash_max_size 2048;   # Maximum size of the hash table of server names
+        types_hash_max_size 2048;          # Maximum size of a MIME type hash table
+        types_hash_bucket_size 128;        # Bucket size of the MIME type hash table
+        variables_hash_max_size 2048;      # Maximum size of the hash table for variables
+        variables_hash_bucket_size 128;    # Bucket size of the hash table for variables
+
+        ### Security Settings ###
+        server_tokens off; #OFF show version nginx server
+
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+
+        ### SSL Settings №##
+        ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3; # Dropping SSLv3, ref: POODLE
+        ssl_prefer_server_ciphers on;
+
+        ###  Logging Settings ###
+
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                   '$status $body_bytes_sent "$http_referer" '
+                   '"$http_user_agent" "$http_x_forwarded_for"';
+
+        log_format detailed '$remote_addr - $remote_user [$time_local] "$request" '
+                       '$status $body_bytes_sent "$http_referer" '
+                       '"$http_user_agent" "$http_x_forwarded_for" '
+                       'rt=$request_time uct="$upstream_connect_time" '
+                       'uht="$upstream_header_time" urt="$upstream_response_time"';
+
+        access_log /var/log/nginx/access.log;
+        error_log /var/log/nginx/error.log;
+
+        ### Gzip Settings ###
+        gzip on; #Enables gzip compression.
+        gzip_disable "msie6"; #Disables gzip for older IE6.
+        gzip_min_length 1000; # Minimum response size for compression
+        gzip_vary on; #Adds the Variable: Accept-Encoding header for caching.
+        gzip_proxied any; #Compresses responses even for proxy clients.
+        gzip_comp_level 6; #Compression level (from 1 to 9.6 is a good compression/load ratio).
+        gzip_buffers 16 8k; #The size and number of buffers for storing temporary data.
+        gzip_http_version 1.1; #Compresses only if the client supports HTTP/1.1 or higher.
+
+        # MIME types for compression
+        gzip_types
+            text/plain
+            text/css
+            text/xml
+            text/javascript
+            text/x-component
+            text/x-cross-domain-policy
+            application/javascript
+            application/x-javascript
+            application/json
+            application/xml
+            application/xml+rss
+            application/atom+xml
+            application/xhtml+xml
+            application/rss+xml
+            application/manifest+json
+            application/vnd.ms-fontobject
+            font/ttf
+            font/otf
+            font/woff
+            font/woff2
+            image/svg+xml
+            image/x-icon;
+
+        ### Rate Limiting Settings ###
+        limit_req_zone $binary_remote_addr zone=api_normal:10m rate=1500r/s;
+        limit_req_zone $binary_remote_addr zone=api_limited:10m rate=3000r/s;
+        limit_req_status 429;
+
+        ##
+        # Virtual Host Configs
+        ##
+        include /etc/nginx/conf.d/*.conf;
+        include /etc/nginx/sites-enabled/*;
+}
+
