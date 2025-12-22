@@ -13,6 +13,7 @@ The repository contains Ansible playbooks and auxiliary tools for automating ser
   - [Users management](#users-management)
   - [SSH Security Hardening](#ssh-security-hardening)
   - [Nginx Setup](#nginx-setup)
+  - [NVIDIA Driver and Docker GPU Setup](#nvidia-gpu-driver-installation)
 
 
 ## Repository structure
@@ -21,6 +22,7 @@ The repository contains Ansible playbooks and auxiliary tools for automating ser
 src/
 ├── ansible-docker-install/         # Docker installation and configuration
 ├── ansible-master-proxy            # Master proxy
+├── ansible-gpu-setup               # NVIDIA Driver and Docker GPU Setup
 ├── ansible-nginx-setup             # Nginx setup
 ├── ansible-ssh-configuration       # SSH Security Hardening
 ├── ansible-users-management        # Users management
@@ -252,3 +254,23 @@ Run
 ```bash
 make nginx-setup
 ```
+---
+
+
+## NVIDIA GPU Driver Installation
+
+Installs NVIDIA GPU drivers and configures Docker to work with GPUs via `nvidia-docker2`.
+Ensures a consistent driver version and Docker configuration across all GPU-enabled servers.
+
+1. Install the NVIDIA GPU driver
+2. Install `nvidia-docker2` to enable GPU support in Docker
+
+### Run
+```bash
+make gpu-setup
+```
+
+Detailed documentation and instructions:
+📄 [README.md](docs/en/README.ansible-gpu-setup.md)
+
+---

@@ -1,0 +1,19 @@
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  },
+  "live-restore": true,
+  "storage-driver": "overlay2",
+  "runtimes": {
+    "nvidia": {
+      "path": "nvidia-container-runtime",
+      "runtimeArgs": []
+    }
+  },
+  "default-runtime": "nvidia",
+   "features": {
+    "buildkit": true
+  }
+}

@@ -30,3 +30,6 @@ ssh-conf-setup: build
 
 nginx-setup: build
 	$(ANSIBLE_PLAYBOOK) ansible-nginx-setup/playbooks/nginx-setup.yml
+
+gpu-setup: build
+	$(ANSIBLE_PLAYBOOK) ansible-gpu-setup/playbooks/gpu-setup.yml

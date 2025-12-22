@@ -1,0 +1,40 @@
+---
+- hosts: need_gpu_setup
+  become: yes
+  vars:
+    nvidia_driver_version: "nvidia-driver-535"
+
+    src_daemon_json: "{{ playbook_dir }}/../nvidia-docker-conf/daemon.json"
+    dest_daemon_json: "/etc/docker/daemon.json"
+
+  tasks:
+    - name: Add NVIDIA Container Toolkit Distribution
+      raw: |
+        curl -fsSL -k https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+        curl -s -L -k https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list |
+        sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' |
+        sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+    - name: Update apt packages
+      apt:
+        update_cache: yes
+
+    - name: Install nvidia driver
+      raw: apt-get install -y --no-install-recommends {{ nvidia_driver_version }}
+
+    - name: Reboot
+      reboot:
+
+    - name: Install nvidia-docker2
+      apt:
+        name: nvidia-docker2
+
+    - name: Copy daemon.json
+      copy:
+        dest: "{{ dest_daemon_json }}"
+        src: "{{ src_daemon_json }}"
+
+    - name: Restart Docker service
+      systemd:
+        name: docker
+        state: restarted
