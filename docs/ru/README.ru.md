@@ -9,6 +9,7 @@
   - [управление пользователями](#users-management)
   - [настройка безопасности SSH](#ssh-security-hardening)
   - [установка и настройка Nginx](#nginx-setup)
+  - [установка драйверов Nvidia GPU на серверах](#установка-драйверов-nvidia-gpu)
 
 
 ## Структура репозитория
@@ -16,6 +17,7 @@
 ```text
 src/
 ├── ansible-docker-install/         # Docker установка/конфигурации
+├── ansible-gpu-setup               # Установка драйверов для GPU Nvidia
 ├── ansible-master-proxy            # Master-proxy
 ├── ansible-nginx-setup             # установка/настройка Nginx
 ├── ansible-ssh-configuration       # SSH Security Hardening
