@@ -1,0 +1,166 @@
+---
+- name: Setup Nginx and configurate with custom error pages
+  hosts: nginx_setup
+  become: yes
+
+  vars:
+    nginx_version: "1.24"
+
+    src_dir_custom_error: "{{ playbook_dir }}/../nginx/custom_errors_html/"
+    src_snippet_path: "{{ playbook_dir }}/../nginx/custom_errors.conf"
+    src_default_index_html: "{{ playbook_dir }}/../nginx/index.html"
+    src_default_site_conf: "{{ playbook_dir }}/../nginx/default"
+    src_base_nginx_conf: "{{ playbook_dir }}/../nginx/nginx.conf"
+
+    dest_dir_custom_error: "/etc/nginx/custom_errors_html"
+    dest_snippet_path: "/etc/nginx/snippets/custom_errors.conf"
+    dest_default_index_html: "/var/www/html/index.html"
+    dest_default_site_conf: "/etc/nginx/sites-enabled/default"
+    dest_base_nginx_conf: "/etc/nginx/nginx.conf"
+
+    dest_path_dir_snippets: "/etc/nginx/snippets"
+
+  tasks:
+    - name: Collect installed packages
+      package_facts:
+        manager: auto
+
+    - name: Fix broken packages
+      command: apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold --fix-broken install
+      register: fix_broken
+      changed_when: "'0 upgraded' not in fix_broken.stdout"
+
+    - name: Ensure nginx.org apt key
+      apt_key:
+        url: https://nginx.org/keys/nginx_signing.key
+        state: present
+
+    - name: Update list nginx available
+      raw: |
+        curl -fsSL https://nginx.org/keys/nginx_signing.key | sudo apt-key add -
+        echo "deb http://nginx.org/packages/ubuntu/ jammy nginx" | sudo tee /etc/apt/sources.list.d/nginx.list
+        sudo apt update
+
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Get current nginx version
+      command: nginx -v
+      register: nginx_version_output
+      changed_when: false
+
+    - name: Upgrade nginx if needed
+      apt:
+        name: nginx
+        state: latest
+      when: nginx_version not in nginx_version_output.stderr
+
+    - name: Create custom errors directory
+      file:
+        path: "{{ dest_dir_custom_error }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Copy all custom error pages
+      copy:
+        src: "{{ src_dir_custom_error }}"
+        dest: "{{ dest_dir_custom_error }}/"
+        owner: root
+        group: root
+        mode: '0644'
+        directory_mode: '0755'
+
+    - name: Backup original index.html if exists
+      copy:
+        src: "{{ src_default_index_html }}"
+        dest: "{{ dest_default_index_html }}.original"
+        remote_src: yes
+        backup: yes
+      ignore_errors: yes
+
+    - name: Create /var/www/html directory
+      file:
+        path: /var/www/html
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Ensure /var/www/html exists
+      file:
+          path: /var/www/html
+          state: directory
+          owner: root
+          group: root
+          mode: '0755'
+
+    - name: Copy custom index.html
+      copy:
+        src: "{{ src_default_index_html }}"
+        dest: "{{ dest_default_index_html }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Create snippets directory
+      file:
+        path: "{{ dest_path_dir_snippets }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Copy custom errors snippet
+      copy:
+        src: "{{ src_snippet_path }}"
+        dest: "{{ dest_snippet_path }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Ensure parent directory for default site config exists
+      file:
+        path: "{{ dest_default_site_conf | dirname }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Copy default site configuration
+      copy:
+        src: "{{ src_default_site_conf }}"
+        dest: "{{ dest_default_site_conf }}"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart nginx
+
+    - name: Set nginx configuration
+      copy:
+        src: "{{ src_base_nginx_conf }}"
+        dest: "{{ dest_base_nginx_conf }}"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart nginx
+
+    - name: Test nginx configuration
+      command: nginx -t
+      register: nginx_test
+      changed_when: false
+
+    - name: Display nginx test result
+      debug:
+        var: nginx_test.stdout_lines
+
+  handlers:
+    - name: restart nginx
+      systemd:
+        name: nginx
+        state: restarted
+        enabled: yes

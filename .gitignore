@@ -8,3 +8,5 @@ hosts
 **/*.conf
 **/*sshd_config
 **/*ssh-notify.sh
+
+!custom_errors.conf

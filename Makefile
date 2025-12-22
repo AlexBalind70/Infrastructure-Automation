@@ -27,3 +27,6 @@ users-management: build
 
 ssh-conf-setup: build
 	$(ANSIBLE_PLAYBOOK) ansible-ssh-configuration/playbooks/ssh_configuration.yml
+
+nginx-setup: build
+	$(ANSIBLE_PLAYBOOK) ansible-nginx-setup/playbooks/nginx-setup.yml

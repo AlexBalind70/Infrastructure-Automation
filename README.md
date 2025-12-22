@@ -12,6 +12,7 @@ The repository contains Ansible playbooks and auxiliary tools for automating ser
   - [Install Docker and Docker Compose](#docker-install)
   - [Users management](#users-management)
   - [SSH Security Hardening](#ssh-security-hardening)
+  - [Nginx Setup](#nginx-setup)
 
 
 ## Repository structure
@@ -20,6 +21,7 @@ The repository contains Ansible playbooks and auxiliary tools for automating ser
 src/
 ├── ansible-docker-install/         # Docker installation and configuration
 ├── ansible-master-proxy            # Master proxy
+├── ansible-nginx-setup             # Nginx setup
 ├── ansible-ssh-configuration       # SSH Security Hardening
 ├── ansible-users-management        # Users management
 └── keys                            # SSH keys for ansible
@@ -174,9 +176,9 @@ User management is handled via Ansible.
 - Controlled via variables only (no code edits)
 
 User actions are defined in a secrets file:
-- `username` — user name
-- `present_servers` — host groups where the user must exist
-- `absent_servers` — host groups where the user must be removed
+- `username` - user name
+- `present_servers` - host groups where the user must exist
+- `absent_servers` - host groups where the user must be removed
 
 > ⚠️ Important  
 > All playbooks are executed via Docker-based Ansible (`make` only).
@@ -188,6 +190,8 @@ Detailed documentation and usage:
 ```bash
 make users-management
 ```
+
+---
 
 ## SSH Security Hardening
 
@@ -217,9 +221,34 @@ make ssh-conf-setup
 ```
 > ⚠️ IMPORTANT  
 > Before running, make sure the Telegram bot token, chat ID, and topic ID are set in the files  
-> ([ssh-notify.sh.example](../../src/ansible-ssh-configuration/ssh/ssh-notify.sh.example),  
-> [ssh.conf.example](../../src/ansible-ssh-configuration/ssh/fail2ban/jail.d/ssh.conf.example))
+> ([ssh-notify.sh.example](src/ansible-ssh-configuration/ssh/ssh-notify.sh.example),  
+> [ssh.conf.example](src/ansible-ssh-configuration/ssh/fail2ban/jail.d/ssh.conf.example))
 
+---
 
+## Nginx Setup
 
+- Nginx Installation and Basic Configuration
+- Install or upgrade Nginx to the specified version
+- Unified baseline Nginx configuration across all servers
+- Custom HTML error pages in corporate branding
+- Main HTML landing page with a link to the primary website and a contact email
+- Performance tuning and basic security hardening
+- Extended log format for further analysis
 
+Recommendations and Security:
+- `server_tokens` off - hide the Nginx version
+- Increased limits for file size and request body
+- Optimized worker processes and network settings
+
+>⚠️ Important
+To enable custom error pages for services (domains), add the following directive:
+`include snippets/custom_errors.conf`;
+
+Detailed documentation and launch instructions:
+📄 [README.md](docs/en/README.nginx-setup.md)
+
+Run
+```bash
+make nginx-setup
+```
