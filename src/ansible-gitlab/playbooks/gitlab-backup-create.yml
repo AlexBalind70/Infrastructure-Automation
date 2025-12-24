@@ -1,0 +1,81 @@
+---
+- name: Create GitLab backup (Docker GitLab)
+  hosts: gitlab_backup_create
+  become: true
+
+  vars:
+    project_name: "gitlab"
+
+    # Name of the GitLab container from docker-compose
+    gitlab_container_name: "gitlab"
+
+    # The path to the project on the remote host (as in docker-compose)
+    gitlab_remote_path: "/srv/{{ project_name }}"
+
+    # Backup directory on the remote host (mounted as /var/opt/gitlab/backups)
+    gitlab_remote_backup_dir: "{{ gitlab_remote_path }}/data/backups"
+
+    # A file with GitLab secrets on a remote host (usually /srv/.../config -> /etc/gitlab)
+    gitlab_remote_secrets: "{{ gitlab_remote_path }}/config/gitlab-secrets.json"
+
+    # Where to put backups on the local machine (where ansible is running)
+    gitlab_local_backup_dir: "/etc/ansible/ansible-gitlab/backup"
+
+    # UID/GID of the git user inside the container
+    git_uid: 998
+    git_gid: 998
+
+  tasks:
+    - name: Ensure local backup dir exists (controller)
+      delegate_to: localhost
+      run_once: true
+      file:
+        path: "{{ gitlab_local_backup_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Ensure remote backup dir exists
+      file:
+        path: "{{ gitlab_remote_backup_dir }}"
+        state: directory
+        owner: "{{ git_uid }}"
+        group: "{{ git_gid }}"
+        mode: "0750"
+
+    - name: Run GitLab backup inside container
+      command:
+        cmd: docker exec -t {{ gitlab_container_name }} gitlab-backup create
+      environment:
+        GITLAB_ASSUME_YES: "1"
+
+    - name: Get latest backup file path on remote
+      shell: |
+        set -o pipefail
+        ls -1t {{ gitlab_remote_backup_dir }}/*_gitlab_backup.tar | head -n 1
+      args:
+        executable: /bin/bash
+      register: gitlab_backup_file
+      changed_when: false
+
+    - name: Fail if no backup file was found
+      fail:
+        msg: "GitLab backup tar not found in {{ gitlab_remote_backup_dir }}"
+      when: gitlab_backup_file.stdout == ""
+
+    - name: Fetch backup tar to local machine
+      fetch:
+        src: "{{ gitlab_backup_file.stdout }}"
+        dest: "{{ gitlab_local_backup_dir }}/"
+        flat: true
+
+    - name: Fetch gitlab-secrets.json to local (optional but strongly recommended)
+      fetch:
+        src: "{{ gitlab_remote_secrets }}"
+        dest: "{{ gitlab_local_backup_dir }}/gitlab-secrets-{{ inventory_hostname }}.json"
+        flat: true
+      ignore_errors: true
+
+    - name: Delete backup tar from remote host
+      file:
+        path: "{{ gitlab_backup_file.stdout }}"
+        state: absent

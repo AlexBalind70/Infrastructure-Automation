@@ -1,0 +1,113 @@
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:17.6.5-ce.0
+    restart: always
+    container_name: gitlab
+    hostname: gitlab
+    networks:
+      - gitlab_network
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url '${GITLAB_EXTERNAL_URL}'
+
+        gitlab_rails['lfs_enabled'] = false
+        gitlab_rails['gitlab_pages_enabled'] = true
+        gitlab_rails['registry_enabled'] = false
+        gitlab_rails['usage_ping_enabled'] = false
+        prometheus_monitoring['enable'] = false
+        gitlab_rails['monitoring_whitelist'] = []
+        gitlab_rails['object_store_enabled'] = false
+        gitlab_rails['assets']['compile'] = true
+        gitlab_rails['assets']['cdn_host'] = ""
+
+        pages_external_url "${GITLAB_PAGES_EXTERNAL_URL}"
+        gitlab_pages['enable'] = true
+        pages_nginx['enable'] = false
+        gitlab_pages['listen_http'] = ["0.0.0.0:8090"]
+        gitlab_pages['listen_https'] = []
+        gitlab_pages['listen_proxy'] = "0.0.0.0:8090"
+        gitlab_rails['artifacts_max_size'] = 1000        
+        # Security & Logging
+        gitlab_rails['log_level'] = 'warn'
+        gitlab_shell['log_level'] = 'WARN'
+        sidekiq['log_level'] = 'warn'
+        gitlab_rails['initial_root_password'] = "${GITLAB_ROOT_PASSWORD}"
+
+        # SMTP
+        gitlab_rails['smtp_enable'] = true
+        gitlab_rails['smtp_address'] = "${SMTP_ADDRESS}"
+        gitlab_rails['smtp_port'] = ${SMTP_PORT}
+        gitlab_rails['smtp_user_name'] = "${SMTP_USERNAME}"
+        gitlab_rails['smtp_password'] = "${SMTP_PASSWORD}"
+        gitlab_rails['smtp_domain'] = "${SMTP_DOMAIN}"
+        gitlab_rails['smtp_authentication'] = "login"
+        gitlab_rails['smtp_enable_starttls_auto'] = true
+        gitlab_rails['smtp_tls'] = false
+        gitlab_rails['gitlab_email_from'] = '${SMTP_FROM_EMAIL}'
+
+        # Nginx
+        nginx['enable'] = true
+        nginx['listen_port'] = 80
+
+        # Puma
+        puma['worker_processes'] = 12
+        puma['worker_threads'] = 8
+        puma['log_level'] = 'warn'
+
+        # Sidekiq
+        sidekiq['concurrency'] = 32
+        sidekiq['max_concurrency'] = 64
+
+        # PostgreSQL
+        postgresql['shared_buffers'] = "4096MB"
+        postgresql['work_mem'] = "256MB"
+        postgresql['maintenance_work_mem'] = "1024MB"
+        postgresql['log_min_messages'] = 'error'
+
+        # Redis
+        redis['maxmemory'] = "2048mb"
+        redis['maxmemory_policy'] = "allkeys-lru"
+
+        # Misc
+        gitlab_rails['disable_database_statistics'] = true
+        gitlab_rails['disable_query_limiting'] = true
+
+        # Registry
+        gitlab_rails['registry_enabled'] = true
+        registry_external_url '${REGISTRY_EXTERNAL_URL}'
+
+        registry['enable'] = true
+        registry['internal_certificate'] = nil
+        registry['internal_key'] = nil
+        registry['registry_http_addr'] = "0.0.0.0:${GITLAB_REGISTRY_PORT}"
+
+        registry_nginx['enable'] = false
+        registry_nginx['listen_https'] = false
+        registry_nginx['listen_port'] = ${GITLAB_REGISTRY_PORT}
+
+
+    ports:
+      - "127.0.0.1:${GITLAB_PORT}:80"
+      - "${GITLAB_SSH_PORT}:${GITLAB_SSH_PORT}"
+      - "127.0.0.1:${GITLAB_REGISTRY_PORT}:${GITLAB_REGISTRY_PORT}"
+      - "127.0.0.1:8090:8090"
+
+    volumes:
+      - /srv/gitlab_volume/config:/etc/gitlab
+      - /srv/gitlab_volume/logs:/var/log/gitlab
+      - /srv/gitlab_volume/data:/var/opt/gitlab
+
+
+    shm_size: '128m'
+    deploy:
+      resources:
+        limits:
+          memory: 16g
+          cpus: "12"
+
+networks:
+  gitlab_network:
+    driver: bridge
+    ipam:
+      config:
+       - subnet: 172.23.0.0/16

@@ -1,0 +1,74 @@
+---
+- name: Restore GitLab backup (Docker GitLab)
+  hosts: gitlab_backup_restore
+  become: true
+
+  vars:
+    project_name: "gitlab"
+
+    # Local path to tar on Ansible machine
+    gitlab_backup_src: "/etc/ansible/ansible-gitlab/backup/1764483134_2025_11_30_17.6.5_gitlab_backup.tar"
+
+    # Backup name WITHOUT .tar
+    gitlab_backup_name: "1764483134_2025_11_30_17.6.5"
+
+    # Path to the project directory on the host (as in docker-compose)
+    gitlab_remote_path: "/srv/{{ project_name }}"
+
+    # The host directory mounted as /var/opt/gitlab/backups in the container
+    gitlab_backup_dest: "{{ gitlab_remote_path }}/data/backups"
+
+    # Name of the GitLab container from docker-compose
+    gitlab_container_name: "gitlab"
+
+    git_uid: 998       # need set the uid from the `docker exec gitlab git id`
+    git_gid: 998       # set gid
+
+  tasks:
+    - name: Ensure backup dir exists on host
+      file:
+        path: "{{ gitlab_backup_dest }}"
+        state: directory
+        owner: "{{ git_uid }}"
+        group: "{{ git_gid }}"
+        mode: "0750"
+
+    - name: Upload backup file to host backup dir
+      copy:
+        src: "{{ gitlab_backup_src }}"
+        dest: "{{ gitlab_backup_dest }}/{{ gitlab_backup_name }}_gitlab_backup.tar"
+        owner: "{{ git_uid }}"
+        group: "{{ git_gid }}"
+        mode: "0640"
+
+    - name: Stop Puma
+      command: docker exec -t {{ gitlab_container_name }} gitlab-ctl stop puma
+      changed_when: true
+
+    - name: Stop Sidekiq
+      command: docker exec -t {{ gitlab_container_name }} gitlab-ctl stop sidekiq
+      changed_when: true
+
+    - name: Ensure PostgreSQL is running
+      command: docker exec -t {{ gitlab_container_name }} gitlab-ctl start postgresql
+      changed_when: false
+      failed_when: false
+
+    - name: Ensure Redis is running
+      command: docker exec -t {{ gitlab_container_name }} gitlab-ctl start redis
+      changed_when: false
+      failed_when: false
+
+    - name: Ensure Gitaly is running
+      command: docker exec -t {{ gitlab_container_name }} gitlab-ctl start gitaly
+      changed_when: false
+      failed_when: false
+
+    - name: Restore backup inside container
+      command: docker exec -t {{ gitlab_container_name }} bash -lc "GITLAB_ASSUME_YES=1 gitlab-backup restore BACKUP={{ gitlab_backup_name }}"
+
+    - name: Reconfigure GitLab inside container
+      command: docker exec -t {{ gitlab_container_name }} gitlab-ctl reconfigure
+
+    - name: Start GitLab services inside container
+      command: docker exec -t {{ gitlab_container_name }} gitlab-ctl restart

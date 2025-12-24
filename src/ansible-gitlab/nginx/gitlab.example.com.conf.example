@@ -1,0 +1,63 @@
+upstream gitlab_host_service {
+    server 127.0.0.1:1111;
+}
+
+server {
+    server_name gitlab.example.com;
+
+    include snippets/custom_errors.conf;
+
+    #Settings for Logs
+    access_log /var/log/nginx/gitlab.example.com_access.log detailed;
+    error_log /var/log/nginx/gitlab.example.com_error.log warn;
+
+    client_max_body_size 1024m;
+
+    # Security headers
+    add_header Content-Security-Policy-Report-Only "default-src 'self';" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    location /csp-report {
+        access_log /var/log/nginx/gitlab.example.com_csp-violations.log;
+        return 204;
+    }
+
+    # Main location
+    location / {
+        proxy_pass https://gitlab_host_service;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+
+        proxy_set_header X-Forwarded-Ssl on;
+        proxy_redirect off;
+        proxy_buffering off;
+        proxy_request_buffering off;
+    }
+
+     listen 443 ssl; # managed by Certbot
+     ssl_certificate /etc/letsencrypt/live/gitlab.example.com/fullchain.pem; # managed by Certbot
+     ssl_certificate_key /etc/letsencrypt/live/gitlab.example.com/privkey.pem; # managed by Certbot
+     include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+
+server {
+     if ($host = gitlab.example.com) {
+         return 301 https://$host$request_uri;
+     } # managed by Certbot
+
+    access_log /var/log/nginx/gitlab.example.com_http_access.log main;
+    error_log /var/log/nginx/gitlab.example.com_http_error.log warn;
+
+    server_name gitlab.example.com;
+    listen 80;
+     return 404; # managed by Certbot
+}
+

@@ -14,6 +14,7 @@ The repository contains Ansible playbooks and auxiliary tools for automating ser
   - [SSH Security Hardening](#ssh-security-hardening)
   - [Nginx Setup](#nginx-setup)
   - [NVIDIA Driver and Docker GPU Setup](#nvidia-gpu-driver-installation)
+  - [GitLab Deployment](#gitlab-deployment)
 
 
 ## Repository structure
@@ -21,6 +22,7 @@ The repository contains Ansible playbooks and auxiliary tools for automating ser
 ```text
 src/
 ├── ansible-docker-install/         # Docker installation and configuration
+├── ansible-gitlab                  # GitLab installation and maintenance
 ├── ansible-master-proxy            # Master proxy
 ├── ansible-gpu-setup               # NVIDIA Driver and Docker GPU Setup
 ├── ansible-nginx-setup             # Nginx setup
@@ -250,7 +252,7 @@ To enable custom error pages for services (domains), add the following directive
 Detailed documentation and launch instructions:
 📄 [README.md](docs/en/README.nginx-setup.md)
 
-Run
+### Run
 ```bash
 make nginx-setup
 ```
@@ -274,3 +276,45 @@ Detailed documentation and instructions:
 📄 [README.md](docs/en/README.ansible-gpu-setup.md)
 
 ---
+
+## GitLab Deployment
+
+GitLab is deployed and maintained automatically.
+
+- Deploy GitLab using Docker Compose
+- Nginx reverse proxy with HTTPS
+- GitLab backup creation
+- Storing backups on the local machine from which the command is executed
+- Restoring GitLab from a backup
+
+> ⚠️ Important
+> 
+> All operations are performed via make and a Docker-based environment.
+> Manual container management is not recommended.
+
+Detailed documentation and instructions:
+📄 [README.md](docs/en/README.ansible-gitlab.md)README.md
+
+### Run (GitLab install / upgrade)
+```bash
+make gitlab-setup
+```
+
+### Run (Create backup GitLab)
+```bash
+make gitlab-backup-create
+```
+
+### Run (Restore backup GitLab)
+```bash
+make gitlab-backup-restore
+```
+
+> ⚠️ Attention
+> 
+> Before running the GitLab deployment, you must fill in the 
+> environment variables and preinstall SSL certificates for 
+> [Gitlab](../../src/ansible-gitlab/nginx/gitlab.example.com.conf.example), 
+> [GitLab Pages](../../src/ansible-gitlab/nginx/pages.gitlab.example.com.conf.example), 
+> and [GitLab Registry](../../src/ansible-gitlab/nginx/registry.gitlab.example.com.conf.example)
+> on the server.

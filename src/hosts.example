@@ -12,3 +12,15 @@ example_server ansible_host=192.168.0.1 ansible_port=22 ansible_user=root ansibl
 
 [nginx_setup]
 example_server ansible_host=192.168.0.1 ansible_port=22 ansible_user=root ansible_ssh_private_key_file=/etc/ansible/keys/ssh-private-key ansible_password=PASSWORD_EXAMPLE
+
+[need_gpu_setup]
+example_server ansible_host=192.168.0.1 ansible_port=22 ansible_user=root ansible_ssh_private_key_file=/etc/ansible/keys/ssh-private-key ansible_password=PASSWORD_EXAMPLE
+
+[gitlab_setup]
+example_server ansible_host=192.168.0.1 ansible_port=22 ansible_user=root ansible_ssh_private_key_file=/etc/ansible/keys/ssh-private-key ansible_password=PASSWORD_EXAMPLE
+
+[gitlab_backup_restore]
+example_server ansible_host=192.168.0.1 ansible_port=22 ansible_user=root ansible_ssh_private_key_file=/etc/ansible/keys/ssh-private-key ansible_password=PASSWORD_EXAMPLE
+
+[gitlab_backup_create]
+example_server ansible_host=192.168.0.1 ansible_port=22 ansible_user=root ansible_ssh_private_key_file=/etc/ansible/keys/ssh-private-key ansible_password=PASSWORD_EXAMPLE

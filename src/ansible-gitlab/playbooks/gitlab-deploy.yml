@@ -1,0 +1,104 @@
+---
+- name: Deploy docker-compose project and nginx vhost
+  hosts: gitlab_setup
+  become: true
+
+  vars:
+    project_name: "gitlab"
+
+    compose_src: "/etc/ansible/ansible-gitlab/compose/docker-compose.gitlab.yml"
+    compose_dest_dir: "/srv/{{ project_name }}"
+    compose_dest_file: "{{ compose_dest_dir }}/docker-compose.yml"
+
+    compose_src_env: "/etc/ansible/ansible-gitlab/compose/.env"
+    compose_dest_env: "{{ compose_dest_dir }}/.env"
+
+    gitlab_nginx_conf_src: "/etc/ansible/ansible-gitlab/nginx/gitlab.example.com.conf"
+    gitlab_nginx_conf_dest: "/etc/nginx/conf.d/gitlab.example.com.conf"
+
+    pages_gitlab_nginx_conf_src: "/etc/ansible/ansible-gitlab/nginx/pages.gitlab.example.com.conf"
+    pages_gitlab_nginx_conf_dest: "/etc/nginx/conf.d/pages.gitlab.example.com.conf"
+
+    registry_gitlab_nginx_conf_src: "/etc/ansible/ansible-gitlab/nginx/pages.gitlab.example.com.conf"
+    registry_gitlab_nginx_conf_dest: "/etc/nginx/conf.d/pages.gitlab.example.com.conf"
+
+  tasks:
+    - name: Ensure project directory exists
+      file:
+        path: "{{ compose_dest_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copy docker-compose.yml
+      copy:
+        src: "{{ compose_src }}"
+        dest: "{{ compose_dest_file }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - docker compose up
+
+    - name: Copy .env file
+      copy:
+        src: "{{ compose_src_env }}"
+        dest: "{{ compose_dest_env }}"
+        owner: root
+        group: root
+        mode: "0600"
+      notify:
+        - docker compose up
+
+    - name: Copy gitlab nginx vhost config
+      copy:
+        src: "{{ gitlab_nginx_conf_src }}"
+        dest: "{{ gitlab_nginx_conf_dest }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - test nginx config
+        - reload nginx
+
+    - name: Copy pages gitlab nginx vhost config
+      copy:
+        src: "{{ pages_gitlab_nginx_conf_src }}"
+        dest: "{{ pages_gitlab_nginx_conf_dest }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - test nginx config
+        - reload nginx
+
+    - name: Copy registry gitlab nginx vhost config
+      copy:
+        src: "{{ registry_gitlab_nginx_conf_src }}"
+        dest: "{{ registry_gitlab_nginx_conf_dest }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - test nginx config
+        - reload nginx
+
+  handlers:
+    - name: docker compose up handler
+      listen: docker compose up
+      ansible.builtin.command:
+        cmd: docker compose -f "{{ compose_dest_file }}" up -d --build
+        chdir: "{{ compose_dest_dir }}"
+
+    - name: test nginx config handler
+      listen: test nginx config
+      ansible.builtin.command:
+        cmd: nginx -t
+
+    - name: reload nginx handler
+      listen: reload nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+

@@ -33,3 +33,12 @@ nginx-setup: build
 
 gpu-setup: build
 	$(ANSIBLE_PLAYBOOK) ansible-gpu-setup/playbooks/gpu-setup.yml
+
+gitlab-setup: build
+	$(ANSIBLE_PLAYBOOK) ansible-gitlab/playbooks/gitlab-deploy.yml
+
+gitlab-backup-create: build
+	$(ANSIBLE_PLAYBOOK) ansible-gitlab/playbooks/gitlab-backup-create.yml
+
+gitlab-backup-restore: build
+	$(ANSIBLE_PLAYBOOK) ansible-gitlab/playbooks/gitlab-backup-restore.yml

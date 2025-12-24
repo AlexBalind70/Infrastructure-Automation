@@ -21,3 +21,10 @@ cp src\ansible-ssh-configuration\ssh\fail2ban\jail.d\ssh.conf.example src\ansibl
 cp src\ansible-ssh-configuration\ssh\fail2ban\telegram-ban.conf.example src\ansible-ssh-configuration\ssh\fail2ban\telegram-ban.conf
 cp src\ansible-ssh-configuration\ssh\ssh-notify.sh.example src\ansible-ssh-configuration\ssh\ssh-notify.sh
 cp src\ansible-ssh-configuration\ssh\sshd_config.example src\ansible-ssh-configuration\ssh\sshd_config
+
+# Fot Gitlab deploy
+cp src/ansible-gitlab/compose/.env.example src/ansible-gitlab/compose/.env
+cp src/ansible-gitlab/nginx/gitlab.example.com.conf.example src/ansible-gitlab/nginx/gitlab.example.com.conf
+cp src/ansible-gitlab/nginx/pages.gitlab.example.com.conf.example src/ansible-gitlab/nginx/pages.gitlab.example.com.conf
+cp src/ansible-gitlab/nginx/registry.gitlab.example.com.conf.example src/ansible-gitlab/nginx/registry.gitlab.example.com.conf
+

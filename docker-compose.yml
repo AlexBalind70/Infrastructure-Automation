@@ -8,3 +8,6 @@ services:
     environment:
       - ANSIBLE_HOST_KEY_CHECKING=False
 
+    volumes:
+      - ./backups:/etc/ansible/ansible-gitlab/backup
+

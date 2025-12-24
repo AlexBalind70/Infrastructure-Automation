@@ -32,3 +32,10 @@ Copy-Item src\ansible-ssh-configuration\ssh\ssh-notify.sh.example src\ansible-ss
 Copy-Item src\ansible-ssh-configuration\ssh\sshd_config.example src\ansible-ssh-configuration\ssh\sshd_config -Force
 
 
+# Fot Gitlab deploy
+Copy-Item src/ansible-gitlab/compose/.env.example src/ansible-gitlab/compose/.env -Force
+Copy-Item src/ansible-gitlab/nginx/gitlab.example.com.conf.example src/ansible-gitlab/nginx/gitlab.example.com.conf -Force
+Copy-Item src/ansible-gitlab/nginx/pages.gitlab.example.com.conf.example src/ansible-gitlab/nginx/pages.gitlab.example.com.conf -Force
+Copy-Item src/ansible-gitlab/nginx/registry.gitlab.example.com.conf.example src/ansible-gitlab/nginx/registry.gitlab.example.com.conf -Force
+
+
